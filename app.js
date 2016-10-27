@@ -1,36 +1,117 @@
 'use strict';
 
+const async = require('async');
+const debug = require('debug')('app:www');
+const error = require('debug')('app:error'); // TODO didn't go to stderr??? https://www.npmjs.com/package/debug
+const mqtt = require('mqtt');
 const net = require('net');
+
 const config = require('./config.json');
 const gcErrorDescription = require('./helpers/gcErrorDescription');
 
-const client = net.connect({
-    host: config.host,
-    port: config.port
-}, () => {
-    client.write('getversion\r');
+let _tcpData;
 
-    setTimeout(() => {
-        // client.write(config.commands.test + '\r');
-        client.write(config.commands._9_off + '\r');
-    }, 100);
-});
+const initializeTCP = (done) => {
+    let callback = false;
 
-client.on('data', (buffer) => {
-    const output = buffer.toString();
-    // console.log(' # ' + output);
+    const {
+        host,
+        port
+    } = config.globalCache.tcp;
 
-    if (output.indexOf('unknowncommand') === 0) {
-        // http://www.globalcache.com/files/docs/API-GC-100.pdf
-        const errCode = parseInt(output.substr(15));
-        const errDesc = gcErrorDescription(errCode);
-        console.error(`Error ${errCode}: ${errDesc}`);
-    } else {
-        console.log(output);
+    const tcp = net.connect({
+        host,
+        port
+    }, () => {
+        debug('tcp connected.');
+
+        if (!callback) {
+            callback = true;
+            return done(null, tcp);
+        }
+    });
+
+    _tcpData = (buffer) => {
+        const output = buffer.toString();
+
+        if (output.indexOf('unknowncommand') === 0) {
+            // http://www.globalcache.com/files/docs/API-GC-100.pdf
+            const errCode = parseInt(output.substr(15));
+            const errDesc = gcErrorDescription(errCode);
+            debug(`Error ${errCode}: ${errDesc}`);
+        } else {
+            debug(output);
+        }
+    };
+    tcp.on('data', _tcpData);
+
+    tcp.on('error', (err) => {
+        if (!callback) {
+            callback = true;
+            return done(err);
+        }
+        error(err); // TODO fail loudly. shut down process?
+    });
+};
+
+const initializeMQTT = (done) => {
+    let callback = false;
+
+    const {
+        host,
+        stateTopic,
+        commandTopic
+    } = config.homeAssistant.mqtt;
+    const client = mqtt.connect(host, {
+        clientId: 'smartbox_ha_paradox'
+    });
+
+    client.on('connect', () => {
+        debug('mqtt connected.');
+        client.subscribe(stateTopic);
+        client.subscribe(commandTopic);
+
+        if (!callback) {
+            callback = true;
+            done(null, client);
+        }
+    });
+
+    client.on('offline', () => {
+        const err = new Error('mqtt server offline.');
+        if (!callback) {
+            callback = true;
+            return done(err);
+        }
+        error(err); // TODO fail loudly. shut down process?
+    });
+
+    client.on('error', (err) => {
+        if (!callback) {
+            callback = true;
+            return done(err);
+        }
+        error(err); // TODO fail loudly. shut down process?
+    });
+};
+
+async.parallel([
+    initializeTCP,
+    initializeMQTT
+], function(err, [tcp, mqtt]) {
+
+    if (err) {
+        error(err);
+        process.exit(1);
+        return;
     }
 
-});
+    const commands = config.globalCache.tcp.commands;
 
-client.on('end', () => {
-    // console.log('disconnected.');
+    tcp.write('getversion\r');
+
+    setTimeout(() => {
+        // tcp.write(commands.test + '\r');
+        tcp.write(commands._9_off + '\r');
+    }, 500);
 });
