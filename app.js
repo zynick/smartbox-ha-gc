@@ -3,7 +3,7 @@
 const async = require('async');
 const debug = require('debug')('app:www');
 const error = require('debug')('app:error'); // TODO didn't go to stderr??? https://www.npmjs.com/package/debug
-const mqtt = require('mqtt');
+const MQTT = require('mqtt');
 const net = require('net');
 
 const config = require('./config.json');
@@ -62,22 +62,27 @@ const initializeMQTT = (done) => {
         stateTopic,
         commandTopic
     } = config.homeAssistant.mqtt;
-    const client = mqtt.connect(host, {
+    const mqtt = MQTT.connect(host, {
         clientId: 'smartbox_ha_paradox'
     });
 
-    client.on('connect', () => {
+    mqtt.on('connect', () => {
         debug('mqtt connected.');
-        client.subscribe(stateTopic);
-        client.subscribe(commandTopic);
+        mqtt.subscribe(stateTopic);
+        mqtt.subscribe(commandTopic);
 
         if (!callback) {
             callback = true;
-            done(null, client);
+            done(null, mqtt);
         }
     });
 
-    client.on('offline', () => {
+    mqtt.on('message', (topic, buffer) => {
+        const message = buffer.toString();
+        debug(`mqtt ${topic}: ${message}`);
+    });
+
+    mqtt.on('offline', () => {
         const err = new Error('mqtt server offline.');
         if (!callback) {
             callback = true;
@@ -86,7 +91,7 @@ const initializeMQTT = (done) => {
         error(err); // TODO fail loudly. shut down process?
     });
 
-    client.on('error', (err) => {
+    mqtt.on('error', (err) => {
         if (!callback) {
             callback = true;
             return done(err);
