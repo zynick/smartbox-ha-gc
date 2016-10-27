@@ -9,8 +9,6 @@ const net = require('net');
 const config = require('./config.json');
 const gcErrorDescription = require('./helpers/gcErrorDescription');
 
-let _tcpData;
-
 const initializeTCP = (done) => {
     let callback = false;
 
@@ -31,7 +29,7 @@ const initializeTCP = (done) => {
         }
     });
 
-    _tcpData = (buffer) => {
+    tcp.on('data', (buffer) => {
         const output = buffer.toString();
 
         if (output.indexOf('unknowncommand') === 0) {
@@ -42,8 +40,7 @@ const initializeTCP = (done) => {
         } else {
             debug(output);
         }
-    };
-    tcp.on('data', _tcpData);
+    });
 
     tcp.on('error', (err) => {
         if (!callback) {
@@ -57,6 +54,7 @@ const initializeTCP = (done) => {
 const initializeMQTT = (done) => {
     let callback = false;
 
+    const commands = config.globalCache.tcp.commands;
     const {
         host,
         stateTopic,
@@ -68,18 +66,13 @@ const initializeMQTT = (done) => {
 
     mqtt.on('connect', () => {
         debug('mqtt connected.');
-        mqtt.subscribe(stateTopic);
+        mqtt.subscribe(stateTopic); // pretty much useless. perhaps can remove
         mqtt.subscribe(commandTopic);
 
         if (!callback) {
             callback = true;
             done(null, mqtt);
         }
-    });
-
-    mqtt.on('message', (topic, buffer) => {
-        const message = buffer.toString();
-        debug(`mqtt ${topic}: ${message}`);
     });
 
     mqtt.on('offline', () => {
@@ -111,12 +104,30 @@ async.parallel([
         return;
     }
 
+    const commandTopic = config.homeAssistant.mqtt.commandTopic;
     const commands = config.globalCache.tcp.commands;
 
-    tcp.write('getversion\r');
+    mqtt.on('message', (topic, buffer) => {
+        const key = buffer.toString();
+        debug(`mqtt ${topic}: ${key}`);
+
+        if (topic === commandTopic) {
+            const command = commands[key];
+            if (command) {
+                tcp.write(`${command}\r`);
+                return;
+            }
+        }
+    });
+
+    /* TODO do your code testing here (to be removed in production) */
+    /* TODO do your code testing here (to be removed in production) */
+    /* TODO do your code testing here (to be removed in production) */
+    /* TODO do your code testing here (to be removed in production) */
 
     setTimeout(() => {
-        // tcp.write(commands.test + '\r');
-        tcp.write(commands._9_off + '\r');
+        // tcp.write(`${commands.test}\r`);
+        tcp.write(`${commands._9_off}\r`);
     }, 500);
+
 });
