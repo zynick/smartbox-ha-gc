@@ -63,7 +63,7 @@ const initializeMQTT = (done) => {
     } = config.homeAssistant.mqtt;
 
     const mqtt = MQTT.connect(host, {
-        clientId: 'smartbox_ha_paradox'
+        clientId: 'smartbox_ha_gc'
     });
 
     mqtt.on('connect', () => {
