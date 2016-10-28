@@ -102,7 +102,7 @@ const initializeMQTT = (done) => {
 async.parallel([
     initializeTCP,
     initializeMQTT
-], function(err, [tcp, mqtt]) {
+], (err, [tcp, mqtt]) => {
 
     if (err) {
         error(err);
