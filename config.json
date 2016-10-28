@@ -2,7 +2,6 @@
     "homeAssistant": {
         "mqtt": {
             "host": "mqtt://localhost",
-            "stateTopic": "smartbox/globalcache",
             "commandTopic": "smartbox/globalcache/set"
         }
     },

@@ -2,7 +2,7 @@
 
 const async = require('async');
 const debug = require('debug')('app:www');
-const error = require('debug')('app:error'); // TODO didn't go to stderr??? https://www.npmjs.com/package/debug
+const error = require('debug')('app:error');
 const MQTT = require('mqtt');
 const net = require('net');
 
@@ -40,6 +40,7 @@ const initializeTCP = (done) => {
         } else {
             debug(output);
         }
+
     });
 
     tcp.on('error', (err) => {
@@ -47,26 +48,26 @@ const initializeTCP = (done) => {
             callback = true;
             return done(err);
         }
-        error(err); // TODO fail loudly. shut down process?
+
+        error(err);
+        process.exit(1); // fail loudly
     });
 };
 
 const initializeMQTT = (done) => {
     let callback = false;
 
-    const commands = config.globalCache.tcp.commands;
     const {
         host,
-        stateTopic,
         commandTopic
     } = config.homeAssistant.mqtt;
+
     const mqtt = MQTT.connect(host, {
         clientId: 'smartbox_ha_paradox'
     });
 
     mqtt.on('connect', () => {
         debug('mqtt connected.');
-        mqtt.subscribe(stateTopic); // pretty much useless. perhaps can remove
         mqtt.subscribe(commandTopic);
 
         if (!callback) {
@@ -77,11 +78,14 @@ const initializeMQTT = (done) => {
 
     mqtt.on('offline', () => {
         const err = new Error('mqtt server offline.');
+
         if (!callback) {
             callback = true;
             return done(err);
         }
-        error(err); // TODO fail loudly. shut down process?
+
+        error(err);
+        process.exit(1); // fail loudly
     });
 
     mqtt.on('error', (err) => {
@@ -89,7 +93,9 @@ const initializeMQTT = (done) => {
             callback = true;
             return done(err);
         }
-        error(err); // TODO fail loudly. shut down process?
+
+        error(err);
+        process.exit(1); // fail loudly
     });
 };
 
@@ -120,14 +126,6 @@ async.parallel([
         }
     });
 
-    /* TODO do your code testing here (to be removed in production) */
-    /* TODO do your code testing here (to be removed in production) */
-    /* TODO do your code testing here (to be removed in production) */
-    /* TODO do your code testing here (to be removed in production) */
-
-    setTimeout(() => {
-        // tcp.write(`${commands.test}\r`);
-        tcp.write(`${commands._9_off}\r`);
-    }, 500);
+    debug('server started.');
 
 });
