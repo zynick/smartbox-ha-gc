@@ -21,7 +21,7 @@ const initializeTCP = (done) => {
         host,
         port
     }, () => {
-        debug('tcp connected.');
+        debug(`${new Date()} tcp connected.`);
 
         if (!callback) {
             callback = true;
@@ -36,9 +36,9 @@ const initializeTCP = (done) => {
             // http://www.globalcache.com/files/docs/API-GC-100.pdf
             const errCode = parseInt(output.substr(15));
             const errDesc = gcErrorDescription(errCode);
-            debug(`Error ${errCode}: ${errDesc}`);
+            debug(`${new Date()} Error ${errCode}: ${errDesc}`);
         } else {
-            debug(output);
+            debug(`${new Date()} ${output}`);
         }
 
     });
@@ -49,6 +49,7 @@ const initializeTCP = (done) => {
             return done(err);
         }
 
+        debug(`${new Date()} ERROR`);
         error(err);
         process.exit(1); // fail loudly
     });
@@ -67,7 +68,7 @@ const initializeMQTT = (done) => {
     });
 
     mqtt.on('connect', () => {
-        debug('mqtt connected.');
+        debug(`${new Date()} mqtt connected.`);
         mqtt.subscribe(commandTopic);
 
         if (!callback) {
@@ -84,6 +85,7 @@ const initializeMQTT = (done) => {
             return done(err);
         }
 
+        debug(`${new Date()} ERROR`);
         error(err);
         process.exit(1); // fail loudly
     });
@@ -94,6 +96,7 @@ const initializeMQTT = (done) => {
             return done(err);
         }
 
+        debug(`${new Date()} ERROR`);
         error(err);
         process.exit(1); // fail loudly
     });
@@ -105,6 +108,7 @@ async.parallel([
 ], (err, [tcp, mqtt]) => {
 
     if (err) {
+        debug(`${new Date()} ERROR`);
         error(err);
         process.exit(1);
         return;
@@ -115,7 +119,7 @@ async.parallel([
 
     mqtt.on('message', (topic, buffer) => {
         const key = buffer.toString();
-        debug(`mqtt ${topic}: ${key}`);
+        debug(`${new Date()} mqtt ${topic}: ${key}`);
 
         if (topic === commandTopic) {
             const command = commands[key];
@@ -126,6 +130,6 @@ async.parallel([
         }
     });
 
-    debug('server started.');
+    debug(`${new Date()} server started.`);
 
 });
