@@ -3,8 +3,8 @@
     "version": "0.0.1",
     "private": true,
     "scripts": {
-        "dev": "DEBUG=app:* node app",
-        "start": "DEBUG=app:error node app"
+        "dev": "DEBUG=app:* /usr/local/bin/node app",
+        "start": "DEBUG=app:error /usr/local/bin/node app"
     },
     "dependencies": {
         "async": "^2.1.2",
