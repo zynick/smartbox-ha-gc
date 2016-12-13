@@ -1,7 +1,7 @@
 {
     "apps": [{
         "name": "ha-gc",
-        "script": "node app",
+        "script": "app.js",
         "watch": false,
         "log_date_format": "YYYY-MM-DD HH:mm Z",
         "out_file": "/var/log/ha-gc-out.log",
