@@ -1,7 +1,7 @@
 'use strict';
 
 const async = require('async');
-const debug = require('debug')('app:www');
+const debug = require('debug')('app:app');
 const error = require('debug')('app:error');
 const MQTT = require('mqtt');
 const net = require('net');
