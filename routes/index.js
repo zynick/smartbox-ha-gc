@@ -1,25 +1,18 @@
 'use strict';
 
-const log = require('debug')('gc:app:routes');
 const router = require('express').Router();
 const isProd = process.env.NODE_ENV === 'production';
 const { version } = require('../package.json');
+const { settings } = require('../config.json').globalCache.tcp;
 
 
-router.all('/', (req, res) => {
-
-    if (!isProd) {
-        log(`==========`);
-        log(`HEADERS: ${JSON.stringify(req.headers, null, 2)}`);
-        log(`QUERY: ${JSON.stringify(req.query, null, 2)}`);
-        log(`COOKIES: ${JSON.stringify(req.cookies, null, 2)}`);
-        log(`PARAMS: ${JSON.stringify(req.params, null, 2)}`);
-        log(`BODY: ${JSON.stringify(req.body, null, 2)}`);
-    }
-
+router.get('/', (req, res) => {
     res.json(`Global Cache API Server v${version}`);
 });
 
+router.get('/v1/settings', (req, res) => {
+    res.json(settings);
+});
 
 /* 404 & Error Handlers */
 router.use((req, res, next) => {

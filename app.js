@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const debug = require('debug');
 const express = require('express');
 const http = require('http');
+const morgan = require('morgan');
 const MQTT = require('mqtt');
 const net = require('net');
 
@@ -86,6 +87,7 @@ const initializeServer = (done) => {
 
     /* Initialize Express */
     const app = express();
+    app.use(morgan('common'));
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({ extended: false }));
     app.use('/', routes);
