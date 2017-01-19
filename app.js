@@ -1,32 +1,30 @@
 'use strict';
 
 const async = require('async');
-const debug = require('debug')('app:app');
-const error = require('debug')('app:error');
+const bodyParser = require('body-parser');
+const debug = require('debug');
+const express = require('express');
+const http = require('http');
 const MQTT = require('mqtt');
 const net = require('net');
 
 const config = require('./config.json');
 const gcErrorDescription = require('./helpers/gcErrorDescription');
+const logError = debug('gc:error');
+const routes = require('./routes');
+
 
 const initializeTCP = (done) => {
-    let callback = false;
 
-    const {
-        host,
-        port
-    } = config.globalCache.tcp;
+    const log = debug('gc:tcp');
+    const { host, port } = config.globalCache.tcp;
 
     const tcp = net.connect({
         host,
         port
     }, () => {
-        debug(`${new Date()} tcp connected.`);
-
-        if (!callback) {
-            callback = true;
-            return done(null, tcp);
-        }
+        log('tcp connected.');
+        return done(null, tcp);
     });
 
     tcp.on('data', (buffer) => {
@@ -34,102 +32,145 @@ const initializeTCP = (done) => {
 
         if (output.indexOf('unknowncommand') === 0) {
             // http://www.globalcache.com/files/docs/API-GC-100.pdf
-            const errCode = parseInt(output.substr(15));
-            const errDesc = gcErrorDescription(errCode);
-            debug(`${new Date()} Error ${errCode}: ${errDesc}`);
+            const code = parseInt(output.substr(15));
+            const desc = gcErrorDescription(code);
+            log(`Unknown Command ${code}: ${desc}`);
         } else {
-            debug(`${new Date()} ${output}`);
+            log(output);
         }
 
     });
 
-    tcp.on('error', (err) => {
-        if (!callback) {
-            callback = true;
-            return done(err);
-        }
+    tcp.on('close', () => {
+        const err = new Error('tcp closed.');
+        logError(err);
+        throw err;
+    });
 
-        debug(`${new Date()} ERROR`);
-        error(err);
-        process.exit(1); // fail loudly
+    tcp.on('error', (err) => {
+        logError(err);
+        throw err;
     });
 };
 
 const initializeMQTT = (done) => {
-    let callback = false;
 
-    const {
-        host,
-        commandTopic
-    } = config.homeAssistant.mqtt;
+    const log = debug('gc:mqtt');
+    const { host, commandTopic } = config.homeAssistant.mqtt;
 
     const mqtt = MQTT.connect(host, {
         clientId: 'smartbox_ha_gc'
     });
 
     mqtt.on('connect', () => {
-        debug(`${new Date()} mqtt connected.`);
+        log('mqtt connected.');
         mqtt.subscribe(commandTopic);
-
-        if (!callback) {
-            callback = true;
-            done(null, mqtt);
-        }
+        done(null, mqtt);
     });
 
-    mqtt.on('offline', () => {
-        const err = new Error('mqtt server offline.');
-
-        if (!callback) {
-            callback = true;
-            return done(err);
-        }
-
-        debug(`${new Date()} ERROR`);
-        error(err);
-        process.exit(1); // fail loudly
+    mqtt.on('close', () => {
+        const err = new Error('mqtt closed.');
+        logError(err);
+        throw err;
     });
 
     mqtt.on('error', (err) => {
-        if (!callback) {
-            callback = true;
-            return done(err);
-        }
-
-        debug(`${new Date()} ERROR`);
-        error(err);
-        process.exit(1); // fail loudly
+        logError(err);
+        throw err;
     });
+};
+
+const initializeServer = (done) => {
+
+    const log = debug('gc:express');
+
+    /* Initialize Express */
+    const app = express();
+    app.use(bodyParser.json());
+    app.use(bodyParser.urlencoded({ extended: false }));
+    app.use('/', routes);
+
+    // normalize environment port into a number, string (named pipe), or false.
+    function normalizePort(val) {
+        const port = parseInt(val, 10);
+        if (isNaN(port)) {
+            return val;
+        }
+        if (port >= 0) {
+            return port;
+        }
+        return false;
+    }
+    const port = normalizePort(process.env.PORT || 3000);
+    app.set('port', port);
+
+    /* Create HTTP server. */
+    const server = http.createServer(app);
+
+    server.listen(port);
+
+    server.on('error', (err) => {
+        if (err.syscall !== 'listen') {
+            throw err;
+        }
+        const bind = typeof port === 'string' ? `Pipe ${port}` : `Port ${port}`;
+        switch (err.code) {
+            case 'EACCES':
+                logError(`${bind} requires elevated privileges`);
+                process.exit(1);
+                break;
+            case 'EADDRINUSE':
+                logError(`${bind} is already in use`);
+                process.exit(1);
+                break;
+            default:
+                throw err;
+        }
+    });
+
+    server.on('listening', () => {
+        const addr = server.address();
+        const bind = typeof addr === 'string' ? `pipe ${addr}` : `port ${addr.port}`;
+        log(`Listening on ${bind}`);
+    });
+
+    done(null, server);
 };
 
 async.parallel([
     initializeTCP,
-    initializeMQTT
-], (err, [tcp, mqtt]) => {
+    initializeMQTT,
+    initializeServer
+], (err, [tcp, mqtt, server]) => {
 
     if (err) {
-        debug(`${new Date()} ERROR`);
-        error(err);
-        process.exit(1);
-        return;
+        logError(err);
+        throw err; // fail loudly
     }
 
-    const commandTopic = config.homeAssistant.mqtt.commandTopic;
-    const commands = config.globalCache.tcp.commands;
+    const log = debug('gc:app');
+    const { commandTopic } = config.homeAssistant.mqtt;
+    const { settings } = config.globalCache.tcp;
+    const commands = {};
+    settings
+        .forEach((setting) => {
+            const cmds = setting.commands;
+            Object
+                .keys(cmds)
+                .forEach((key) => {
+                    commands[key] = cmds[key];
+                });
+        });
 
     mqtt.on('message', (topic, buffer) => {
         const key = buffer.toString();
-        debug(`${new Date()} mqtt ${topic}: ${key}`);
+        log(`mqtt ${topic}: ${key}`);
 
-        if (topic === commandTopic) {
-            const command = commands[key];
-            if (command) {
-                tcp.write(`${command}\r`);
-                return;
-            }
+        if (topic === commandTopic && commands[key]) {
+            tcp.write(`${commands[key]}\r`);
         }
     });
 
-    debug(`${new Date()} server started.`);
+    log('app started.');
 
 });

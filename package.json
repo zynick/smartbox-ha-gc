@@ -3,11 +3,14 @@
     "version": "0.0.1",
     "private": true,
     "scripts": {
-        "start": "DEBUG=app:* node app"
+        "dev": "NODE_ENV=development PORT=3001 DEBUG=gc:* node app",
+        "start": "NODE_ENV=production PORT=3001 DEBUG=gc:error node app"
     },
     "dependencies": {
         "async": "^2.1.2",
+        "body-parser": "^1.16.0",
         "debug": "^2.2.0",
+        "express": "^4.14.0",
         "mqtt": "^2.0.1"
     }
 }
