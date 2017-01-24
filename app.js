@@ -154,15 +154,14 @@ async.parallel([
     const { commandTopic } = config.homeAssistant.mqtt;
     const { settings } = config.globalCache.tcp;
     const commands = {};
-    settings
-        .forEach((setting) => {
-            const cmds = setting.commands;
-            Object
-                .keys(cmds)
-                .forEach((key) => {
-                    commands[key] = cmds[key];
-                });
+    settings.forEach((setting) => {
+        setting.items.forEach((item) => {
+            const cmds = item.commands;
+            Object.keys(cmds).forEach((key) => {
+                commands[key] = cmds[key];
+            })
         });
+    });
 
     mqtt.on('message', (topic, buffer) => {
         const key = buffer.toString();
