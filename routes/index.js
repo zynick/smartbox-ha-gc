@@ -1,32 +1,19 @@
 'use strict';
 
 const router = require('express').Router();
-const { version } = require('../package.json');
-const { settings } = require('../config.json').globalCache.tcp;
-const { NODE_ENV } = process.env;
+const { NODE_ENV } = require('../config.js');
+const controller = require('../controllers/index.js');
+const settings = require('../settings.json');
 
 
-router.get('/', (req, res) => res.json(`Global Cache API Server v${version}`));
+if (NODE_ENV !== 'production') {
+    router.use(controller.debug);
+}
 
+router.get('/', controller.index);
 router.get('/v1/settings', (req, res) => res.json(settings));
-
-
-/* 404 & Error Handlers */
-router.use((req, res, next) => {
-  const err = new Error('Not Found');
-  err.status = 404;
-  next(err);
-});
-
-router.use((err, req, res, next) => {
-  const { status = 500, message = 'Internal Server Error' } = err;
-  const error = { status, message };
-  // hide stacktrace in production, show otherwise
-  if (NODE_ENV !== 'production') { error.stack = err.stack; }
-  res
-    .status(status)
-    .json({ error });
-});
+router.use(controller.notFound);
+router.use(controller.errorHandlerJSON);
 
 
 module.exports = router;

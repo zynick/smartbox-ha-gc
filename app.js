@@ -9,18 +9,23 @@ const morgan = require('morgan');
 const MQTT = require('mqtt');
 const net = require('net');
 
-const config = require('./config.json');
+const {
+  MQTT_HOST,
+  MQTT_TOPIC,
+  GC_HOST,
+  GC_PORT
+} = require('./config.js');
+const routes = require('./routes');
+const settings = require('./settings.json');
 const { getErrorDescrption } = require('./lib/globalCache.js');
 const logError = debug('gc:error');
-const routes = require('./routes');
 
 
 const initializeTCP = done => {
 
   const log = debug('gc:tcp');
-  const { host, port } = config.globalCache.tcp;
 
-  const tcp = net.connect({ host, port },
+  const tcp = net.connect({ host: GC_HOST, port: GC_PORT },
     () => {
       log('tcp connected.');
       return done(null, tcp);
@@ -55,13 +60,12 @@ const initializeTCP = done => {
 const initializeMQTT = done => {
 
   const log = debug('gc:mqtt');
-  const { host, commandTopic } = config.homeAssistant.mqtt;
 
-  const mqtt = MQTT.connect(host, { clientId: 'smartbox_ha_gc' });
+  const mqtt = MQTT.connect(`mqtt://${MQTT_HOST}`, { clientId: 'smartbox_ha_gc' });
 
   mqtt.on('connect', () => {
     log('mqtt connected.');
-    mqtt.subscribe(commandTopic);
+    mqtt.subscribe(MQTT_TOPIC);
     done(null, mqtt);
   });
 
@@ -142,8 +146,7 @@ async.parallel([
   }
 
   const log = debug('gc:app');
-  const { commandTopic } = config.homeAssistant.mqtt;
-  const { settings } = config.globalCache.tcp;
+
   const commands = {};
   settings.forEach(setting =>
     setting.items.forEach(item => {
@@ -156,7 +159,7 @@ async.parallel([
     const key = buffer.toString();
     log(`mqtt ${topic}: ${key}`);
 
-    if (topic === commandTopic && commands[key]) {
+    if (topic === MQTT_TOPIC && commands[key]) {
       tcp.write(`${commands[key]}\r`);
     }
   });
