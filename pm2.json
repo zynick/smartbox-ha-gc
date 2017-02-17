@@ -1,20 +1,20 @@
 {
-    "apps": [{
-        "name": "ha-gc",
-        "script": "app",
-        "watch": false,
-        "log_date_format": "YYYY-MM-DD HH:mm Z",
-        "out_file": "/var/log/ha-gc-out.log",
-        "error_file": "/var/log/ha-gc-err.log",
-        "env": {
-            "NODE_ENV": "development",
-            "PORT": "3001",
-            "DEBUG": "gc:*"
-        },
-        "env_production": {
-            "NODE_ENV": "production",
-            "PORT": "3001",
-            "DEBUG": "gc:error"
-        }
-    }]
+  "apps": [{
+    "name": "ha-gc",
+    "script": "app",
+    "watch": false,
+    "log_date_format": "YYYY-MM-DD HH:mm Z",
+    "out_file": "/var/log/ha-gc-out.log",
+    "error_file": "/var/log/ha-gc-err.log",
+    "env": {
+      "NODE_ENV": "development",
+      "PORT": "3001",
+      "DEBUG": "gc:*"
+    },
+    "env_production": {
+      "NODE_ENV": "production",
+      "PORT": "3001",
+      "DEBUG": "gc:error"
+    }
+  }]
 }
