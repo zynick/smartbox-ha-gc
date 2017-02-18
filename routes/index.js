@@ -5,13 +5,15 @@ const { NODE_ENV } = require('../config.js');
 const controller = require('../controllers/index.js');
 const structure = require('../structure.json');
 
-// filter structure commands
+// filter structure commands object to comands key array
 structure.forEach(zone => {
   zone.items.forEach(item => {
     const keys = Object.keys(item.commands);
     item.commands = keys;
   });
 });
+
+
 
 if (NODE_ENV !== 'production') {
     router.use(controller.debug);

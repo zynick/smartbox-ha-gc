@@ -9,7 +9,6 @@ const debug = (req, res, next) => {
   log('==========');
   log(`HEADERS: ${JSON.stringify(req.headers, null, 2)}`);
   log(`QUERY: ${JSON.stringify(req.query, null, 2)}`);
-  log(`COOKIES: ${JSON.stringify(req.cookies, null, 2)}`);
   log(`PARAMS: ${JSON.stringify(req.params, null, 2)}`);
   log(`BODY: ${JSON.stringify(req.body, null, 2)}`);
   // res.setHeader('Access-Control-Allow-Credentials', 'true');
