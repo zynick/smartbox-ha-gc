@@ -13,10 +13,11 @@ const {
   MQTT_HOST,
   MQTT_TOPIC,
   GC_HOST,
-  GC_PORT
+  GC_PORT,
+  PORT
 } = require('./config.js');
 const routes = require('./routes');
-const settings = require('./settings.json');
+const structure = require('./structure.json');
 const { getErrorDescrption } = require('./lib/globalCache.js');
 const logError = debug('gc:error');
 
@@ -98,7 +99,7 @@ const initializeServer = done => {
     return isNaN(port) ? val :
       port >= 0 ? port : false;
   };
-  const port = normalizePort(process.env.PORT || 3000);
+  const port = normalizePort(PORT);
   app.set('port', port);
 
   /* Create HTTP server. */
@@ -148,8 +149,8 @@ async.parallel([
   const log = debug('gc:app');
 
   const commands = {};
-  settings.forEach(setting =>
-    setting.items.forEach(item => {
+  structure.forEach(zone =>
+    zone.items.forEach(item => {
       const cmds = item.commands;
       Object.keys(cmds).forEach(key => commands[key] = cmds[key]);
     })
