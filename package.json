@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "gc:dummy": "nc -l 4998",
+    "gc:dummy": "nc -lvp 4998",
     "dev": "NODE_ENV=development PORT=3001 DEBUG=gc:* node app",
     "start": "NODE_ENV=production PORT=3001 DEBUG=gc:error node app",
 

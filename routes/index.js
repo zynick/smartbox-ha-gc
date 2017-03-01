@@ -3,26 +3,34 @@
 const router = require('express').Router();
 const { NODE_ENV } = require('../config.js');
 const controller = require('../controllers/index.js');
-const structure = require('../structure.json');
-
-// filter structure commands object to comands key array
-structure.forEach(zone => {
-  zone.items.forEach(item => {
-    const keys = Object.keys(item.commands);
-    item.commands = keys;
-  });
-});
+const v2 = require('../controllers/v2.js');
 
 
+module.exports = tcp => {
 
-if (NODE_ENV !== 'production') {
+  const injectTCP = (req, res, next) => {
+    req.tcp = tcp;
+    next();
+  };
+
+
+  if (NODE_ENV !== 'production') {
     router.use(controller.debug);
-}
+  }
 
-router.get('/', controller.index);
-router.get('/v1/structure', (req, res) => res.json(structure));
-router.use(controller.notFound);
-router.use(controller.errorHandlerJSON);
+  router.get('/', controller.index);
+
+  router.get('/v2/structure', v2.getStructure);
+
+  router.post('/v2/command',
+    injectTCP,
+    v2.postCommand,
+    v2.postCommandEnd);
+
+  router.use(controller.notFound);
+  router.use(controller.errorHandlerJSON);
 
 
-module.exports = router;
+  return router;
+
+};

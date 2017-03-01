@@ -1,18 +1,15 @@
 'use strict';
 
+/**
+ * Deprecated. will not be supporting HA
+ */
+
 const async = require('async');
 const debug = require('debug');
 const MQTT = require('mqtt');
 const net = require('net');
 
-const {
-  MQTT_HOST,
-  MQTT_TOPIC,
-  GC_HOST,
-  GC_PORT,
-  PORT
-} = require('./config.js');
-const routes = require('./routes');
+const { MQTT_HOST, MQTT_TOPIC, GC_HOST, GC_PORT } = require('./config.js');
 const structure = require('./structure.json');
 const { getErrorDescrption } = require('./lib/globalCache.js');
 const log = debug('gc:appHA');
