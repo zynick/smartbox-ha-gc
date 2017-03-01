@@ -1,6 +1,6 @@
 'use strict';
 
-const log = require('debug')('gc:app:controllers');
+const log = require('debug')('gc:controllers');
 const { NODE_ENV } = require('../config.js');
 const { version } = require('../package.json');
 

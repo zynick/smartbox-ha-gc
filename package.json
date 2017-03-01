@@ -3,9 +3,12 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "NODE_ENV=development PORT=3001 DEBUG=gc:* node app",
     "gc:dummy": "nc -l 4998",
-    "start": "NODE_ENV=production PORT=3001 DEBUG=gc:error node app"
+    "dev": "NODE_ENV=development PORT=3001 DEBUG=gc:* node app",
+    "start": "NODE_ENV=production PORT=3001 DEBUG=gc:error node app",
+
+    "devHA": "NODE_ENV=development PORT=3001 DEBUG=gc:* node appHA",
+    "startHA": "NODE_ENV=production PORT=3001 DEBUG=gc:error node appHA"
   },
   "dependencies": {
     "async": "^2.1.2",
